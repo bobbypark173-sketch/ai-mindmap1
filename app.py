@@ -56,6 +56,9 @@ def mindmap():
 [{{"title":"가지 제목","desc":"한 줄 설명 (20자 이내)"}},...]\
 """
 
+    if not ANTHROPIC_API_KEY:
+        return jsonify({"ok": False, "error": "ANTHROPIC_API_KEY 환경변수가 없습니다"}), 500
+
     try:
         res = requests.post(
             ANTHROPIC_URL,
@@ -71,6 +74,9 @@ def mindmap():
             },
             timeout=30
         )
+        if res.status_code != 200:
+            return jsonify({"ok": False, "error": f"Anthropic API 오류 {res.status_code}: {res.text}"}), 500
+
         result = res.json()
         text = "".join(b.get("text", "") for b in result.get("content", []))
         clean = text.replace("```json", "").replace("```", "").strip()
