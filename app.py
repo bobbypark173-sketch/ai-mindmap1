@@ -7,7 +7,6 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 PMAP = {
@@ -29,6 +28,7 @@ def index():
 
 @app.route("/api/mindmap", methods=["POST"])
 def mindmap():
+    ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     data = request.get_json()
     topic = data.get("topic", "")
     purpose = data.get("purpose", "idea")
