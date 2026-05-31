@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🌿 AI 마인드맵 생성기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #FDF6EC 0%, #F5EDE0 50%, #EDE0D4 100%);
+    color: #3D2B1F;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: #C8A97E66; border-radius: 4px; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  @keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+  .screen { display:none; animation: fadeIn 0.35s ease; }
+  .screen.active { display:block; }
+
+  .btn-primary {
+    width:100%; padding:15px; border:none; border-radius:16px;
+    font-size:16px; font-weight:700; cursor:pointer;
+    font-family:'Noto Sans KR',sans-serif;
+    background: linear-gradient(135deg,#C8A97E,#A07855);
+    color:white; box-shadow:0 4px 20px rgba(200,169,126,0.45);
+    transition:all 0.2s;
+  }
+  .btn-primary:disabled { background:#D4C4B0; box-shadow:none; cursor:default; }
+  .btn-primary:active { transform:scale(0.98); }
+
+  .btn-secondary {
+    width:100%; padding:13px; border-radius:16px; cursor:pointer;
+    font-size:15px; font-weight:600; font-family:'Noto Sans KR',sans-serif;
+    background:transparent; color:#A07855;
+    border:2px solid #C8A97E66; transition:all 0.2s;
+  }
+  .btn-secondary:active { transform:scale(0.98); }
+
+  .card {
+    background:white; border-radius:20px; padding:20px;
+    box-shadow:0 4px 20px rgba(61,43,31,0.08); margin-bottom:14px;
+  }
+  .card-label {
+    font-size:13px; font-weight:700; color:#7A6055; display:block; margin-bottom:12px;
+  }
+
+  #home { max-width:480px; margin:0 auto; padding:60px 20px 40px; }
+  .logo-wrap { text-align:center; margin-bottom:40px; }
+  .logo-icon {
+    width:72px; height:72px; border-radius:24px;
+    background:linear-gradient(135deg,#C8A97E,#8FB5A0);
+    display:flex; align-items:center; justify-content:center;
+    font-size:36px; margin:0 auto 16px;
+    box-shadow:0 8px 30px rgba(200,169,126,0.4);
+  }
+  .logo-title { font-size:26px; font-weight:700; color:#3D2B1F; font-family:'Noto Serif KR',serif; margin-bottom:8px; }
+  .logo-sub { font-size:14px; color:#7A6055; line-height:1.7; }
+
+  #topic-input {
+    width:100%; border:2px solid #EDE0D4; border-radius:12px;
+    padding:14px 16px; font-size:16px; outline:none;
+    font-family:'Noto Sans KR',sans-serif; color:#3D2B1F;
+    background:#FDF9F4; transition:border-color 0.2s;
+  }
+  #topic-input:focus { border-color:#C8A97E; }
+
+  #options { max-width:480px; margin:0 auto; padding:24px 16px 40px; }
+  .option-header { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
+  .back-btn {
+    background:white; border:2px solid #EDE0D4; border-radius:12px;
+    width:40px; height:40px; cursor:pointer; font-size:18px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+
+  .purpose-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .opt-btn {
+    padding:10px 8px; border:2px solid #EDE0D4; border-radius:12px;
+    background:white; font-size:13px; font-weight:400; color:#7A6055;
+    cursor:pointer; font-family:'Noto Sans KR',sans-serif;
+    transition:all 0.15s; text-align:center;
+  }
+  .opt-btn.selected { border-color:#C8A97E; background:#FDF6EC; font-weight:700; color:#A07855; }
+  .mode-btn {
+    padding:12px 16px; border:2px solid #EDE0D4; border-radius:12px;
+    background:white; font-size:14px; font-weight:400; color:#7A6055;
+    cursor:pointer; font-family:'Noto Sans KR',sans-serif;
+    transition:all 0.15s; text-align:left; display:block; width:100%; margin-bottom:8px;
+  }
+  .mode-btn.selected { border-color:#8FB5A0; background:#EFF7F3; font-weight:700; color:#4A7A6A; }
+
+  .btn-green {
+    width:100%; padding:15px; border:none; border-radius:16px;
+    font-size:16px; font-weight:700; cursor:pointer;
+    font-family:'Noto Sans KR',sans-serif;
+    background:linear-gradient(135deg,#8FB5A0,#4A7A6A);
+    color:white; box-shadow:0 4px 20px rgba(143,181,160,0.5);
+    transition:all 0.2s;
+  }
+  .btn-green:active { transform:scale(0.98); }
+
+  #map { max-width:600px; margin:0 auto; display:flex; flex-direction:column; min-height:100vh; }
+
+  .map-header {
+    background:rgba(253,246,236,0.95); backdrop-filter:blur(10px);
+    padding:12px 16px; border-bottom:1px solid #EDE0D4;
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .map-header-left { display:flex; align-items:center; gap:10px; }
+  .header-back {
+    background:white; border:1px solid #EDE0D4; border-radius:10px;
+    width:36px; height:36px; cursor:pointer; font-size:16px;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .map-topic { font-size:15px; font-weight:700; color:#3D2B1F; font-family:'Noto Serif KR',serif; }
+  .map-meta { font-size:11px; color:#A07855; margin-top:2px; }
+  .view-toggle {
+    background:white; color:#7A6055; border:1px solid #EDE0D4;
+    border-radius:10px; padding:6px 10px; font-size:12px; font-weight:600;
+    cursor:pointer; font-family:'Noto Sans KR',sans-serif; white-space:nowrap;
+  }
+  .view-toggle.active { background:#3D2B1F; color:#F5E6D3; }
+
+  .loading-wrap {
+    flex:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:60px 20px;
+  }
+  .loading-icon { font-size:52px; animation:pulse 1.5s infinite; margin-bottom:16px; }
+  .loading-text { color:#7A6055; font-size:15px; font-weight:600; }
+  .loading-sub { color:#A09090; font-size:13px; margin-top:6px; }
+
+  #tree-wrap { flex:1; padding:16px; overflow:auto; }
+  #tree-text-wrap { flex:1; padding:16px; display:none; }
+  #tree-text-wrap pre {
+    background:white; border-radius:16px; padding:20px;
+    font-family:monospace; font-size:13px; color:#3D2B1F;
+    line-height:1.9; white-space:pre-wrap; word-break:break-all;
+    box-shadow:0 2px 16px rgba(0,0,0,0.08);
+  }
+
+  .node-card {
+    border-radius:16px; padding:12px 16px; margin-bottom:8px;
+    cursor:pointer; transition:all 0.2s; position:relative;
+    border:2px solid transparent;
+  }
+  .node-card:active { transform:scale(0.99); }
+  .node-card.root-card { padding:14px 20px; }
+  .node-row { display:flex; align-items:center; gap:8px; }
+  .node-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .node-title { font-size:15px; font-weight:700; font-family:'Noto Serif KR',serif; line-height:1.3; }
+  .node-title.root { font-size:17px; color:#F5E6D3; }
+  .node-desc { font-size:12px; color:#7A6055; margin-top:3px; }
+  .node-badge {
+    font-size:11px; font-weight:600; border-radius:8px;
+    padding:2px 8px; white-space:nowrap; margin-left:auto; flex-shrink:0;
+  }
+  .node-spinner { font-size:16px; animation:spin 1s linear infinite; }
+
+  .action-btns { margin-top:12px; display:flex; gap:6px; flex-wrap:wrap; }
+  .action-btn {
+    border-radius:10px; padding:6px 12px; font-size:12px; font-weight:600;
+    cursor:pointer; font-family:'Noto Sans KR',sans-serif;
+    transition:all 0.15s; border:1px solid transparent;
+  }
+
+  .node-children { padding-left:12px; border-left:2px dashed; }
+
+  .map-toolbar {
+    background:rgba(253,246,236,0.95); backdrop-filter:blur(10px);
+    border-top:1px solid #EDE0D4; padding:12px 16px;
+    display:flex; gap:8px; justify-content:center; flex-wrap:wrap;
+  }
+  .tool-btn {
+    padding:8px 14px; border:1px solid #EDE0D4; border-radius:12px;
+    font-size:13px; font-weight:600; cursor:pointer; background:white; color:#7A6055;
+    font-family:'Noto Sans KR',sans-serif; transition:all 0.15s;
+  }
+  .tool-btn.accent {
+    background:linear-gradient(135deg,#C8A97E,#A07855);
+    color:white; border:none; box-shadow:0 2px 10px rgba(200,169,126,0.4);
+  }
+  .tool-btn:active { transform:scale(0.97); }
+
+  #toast {
+    position:fixed; top:20px; left:50%; transform:translateX(-50%) translateY(-60px);
+    background:#3D2B1F; color:#F5E6D3; border-radius:24px;
+    padding:10px 22px; font-size:14px; font-weight:600;
+    z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    white-space:nowrap; transition:transform 0.3s ease;
+    pointer-events:none;
+  }
+  #toast.show { transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ══════════ HOME -->
+<div id="home" class="screen active">
+  <div class="logo-wrap">
+    <div class="logo-icon">🌿</div>
+    <h1 class="logo-title">AI 마인드맵</h1>
+    <p class="logo-sub">생각이 막힐 때,<br>AI가 아이디어 가지를 펼쳐드립니다</p>
+  </div>
+  <div class="card">
+    <span class="card-label">💭 중심 주제</span>
+    <input id="topic-input" type="text" placeholder="예: 크몽 아이디어, 블로그 주제, 공부 계획...">
+  </div>
+  <button class="btn-primary" id="btn-next" disabled onclick="goOptions()">다음으로 →</button>
+  <br><br>
+  <button class="btn-secondary" onclick="loadJSON()">📂 저장된 파일 불러오기</button>
+</div>
+
+<!-- ══════════ OPTIONS -->
+<div id="options" class="screen">
+  <div class="option-header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <div>
+      <div style="font-size:18px;font-weight:700;color:#3D2B1F;font-family:'Noto Serif KR',serif">설정 선택</div>
+      <div style="font-size:13px;color:#7A6055">📌 <span id="topic-preview"></span></div>
+    </div>
+  </div>
+  <div class="card">
+    <span class="card-label">🎯 목적 선택</span>
+    <div class="purpose-grid" id="purpose-grid"></div>
+  </div>
+  <div class="card">
+    <span class="card-label">🔀 확장 방식</span>
+    <div id="mode-list"></div>
+  </div>
+  <button class="btn-green" onclick="startMindmap()">🌿 마인드맵 생성하기</button>
+</div>
+
+<!-- ══════════ MAP -->
+<div id="map" class="screen">
+  <div class="map-header">
+    <div class="map-header-left">
+      <button class="header-back" onclick="goHome()">←</button>
+      <div>
+        <div class="map-topic" id="map-topic-title"></div>
+        <div class="map-meta" id="map-meta"></div>
+      </div>
+    </div>
+    <button class="view-toggle" id="view-toggle-btn" onclick="toggleView()">📄 텍스트</button>
+  </div>
+
+  <div id="loading-wrap" class="loading-wrap" style="display:none;">
+    <div class="loading-icon">🌿</div>
+    <p class="loading-text">AI가 가지를 생성하는 중...</p>
+    <p class="loading-sub">잠시만 기다려주세요</p>
+  </div>
+
+  <div id="tree-wrap"></div>
+  <div id="tree-text-wrap"><pre id="tree-text-pre"></pre></div>
+
+  <div class="map-toolbar" id="map-toolbar" style="display:none;">
+    <button class="tool-btn" onclick="copyTree()">📋 복사</button>
+    <button class="tool-btn" onclick="saveJSON()">💾 저장</button>
+    <button class="tool-btn" onclick="loadJSON()">📂 열기</button>
+    <button class="tool-btn accent" onclick="goOptions()">🔄 다시 생성</button>
+  </div>
+</div>
+
+<script>
+const BRANCH_COLORS = ["#C8A97E","#8FB5A0","#D4847A","#7AAEC8","#B89BC8","#9CBD8F","#D4A96A","#7AB5C8"];
+const PURPOSES = [
+  {id:"idea",label:"💡 아이디어 발굴"},{id:"product",label:"🛒 상품 기획"},
+  {id:"blog",label:"✍️ 글쓰기"},{id:"content",label:"🎬 콘텐츠 기획"},
+  {id:"study",label:"📚 공부 정리"},{id:"problem",label:"🔧 문제 해결"},
+  {id:"plan",label:"📋 계획 세우기"},{id:"meeting",label:"🤝 회의 준비"},
+];
+const MODES = [
+  {id:"wide",label:"🌐 넓게 보기"},{id:"deep",label:"🎯 깊게 파기"},
+  {id:"action",label:"⚡ 실행 중심"},{id:"creative",label:"🎨 창의적 확장"},
+  {id:"realistic",label:"✅ 현실성 중심"},
+];
+
+let topic = "", purpose = "idea", mode = "wide";
+let rootNode = null;
+let uidCounter = 0;
+let isTreeView = false;
+let selectedId = null;
+const mkId = () => "n" + (++uidCounter);
+
+// 입력
+document.getElementById("topic-input").addEventListener("input", function(){
+  topic = this.value.trim();
+  document.getElementById("btn-next").disabled = !topic;
+});
+document.getElementById("topic-input").addEventListener("keydown", function(e){
+  if (e.key === "Enter" && topic) goOptions();
+});
+
+// 목적 버튼
+const pg = document.getElementById("purpose-grid");
+PURPOSES.forEach(p => {
+  const b = document.createElement("button");
+  b.className = "opt-btn" + (p.id === purpose ? " selected" : "");
+  b.textContent = p.label; b.dataset.id = p.id;
+  b.onclick = () => {
+    purpose = p.id;
+    pg.querySelectorAll(".opt-btn").forEach(x => x.classList.toggle("selected", x.dataset.id === p.id));
+  };
+  pg.appendChild(b);
+});
+
+// 모드 버튼
+const ml = document.getElementById("mode-list");
+MODES.forEach(m => {
+  const b = document.createElement("button");
+  b.className = "mode-btn" + (m.id === mode ? " selected" : "");
+  b.textContent = m.label; b.dataset.id = m.id;
+  b.onclick = () => {
+    mode = m.id;
+    ml.querySelectorAll(".mode-btn").forEach(x => x.classList.toggle("selected", x.dataset.id === m.id));
+  };
+  ml.appendChild(b);
+});
+
+// 화면 전환
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  window.scrollTo(0,0);
+}
+function goHome() {
+  rootNode = null; selectedId = null; isTreeView = false;
+  document.getElementById("tree-wrap").innerHTML = "";
+  document.getElementById("map-toolbar").style.display = "none";
+  showScreen("home");
+}
+function goOptions() {
+  topic = document.getElementById("topic-input").value.trim();
+  if (!topic) return;
+  document.getElementById("topic-preview").textContent = topic;
+  showScreen("options");
+}
+
+// ── AI 호출 (서버 경유)
+async function callAI(parentTitle, depth) {
+  const res = await fetch("/api/mindmap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ topic, purpose, mode, parent_title: parentTitle, depth })
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "서버 오류");
+  return data.branches;
+}
+
+// 마인드맵 시작
+async function startMindmap() {
+  topic = document.getElementById("topic-input").value.trim();
+  if (!topic) return;
+  showScreen("map");
+  document.getElementById("map-topic-title").textContent = topic;
+  document.getElementById("map-meta").textContent =
+    (PURPOSES.find(p=>p.id===purpose)?.label||"") + " · " + (MODES.find(m=>m.id===mode)?.label||"");
+  document.getElementById("loading-wrap").style.display = "flex";
+  document.getElementById("tree-wrap").innerHTML = "";
+  document.getElementById("map-toolbar").style.display = "none";
+  isTreeView = false;
+  document.getElementById("view-toggle-btn").textContent = "📄 텍스트";
+  document.getElementById("view-toggle-btn").classList.remove("active");
+  document.getElementById("tree-wrap").style.display = "block";
+  document.getElementById("tree-text-wrap").style.display = "none";
+
+  try {
+    const branches = await callAI(null, 0);
+    rootNode = {
+      id: mkId(), title: topic, desc:"중심 주제", color:"#3D2B1F",
+      isRoot:true, children: branches.map((b,i)=>({
+        id:mkId(), title:b.title, desc:b.desc,
+        color:BRANCH_COLORS[i%BRANCH_COLORS.length],
+        isRoot:false, children:[], loading:false
+      }))
+    };
+    document.getElementById("loading-wrap").style.display = "none";
+    renderTree();
+    document.getElementById("map-toolbar").style.display = "flex";
+  } catch(e) {
+    document.getElementById("loading-wrap").style.display = "none";
+    showToast("AI 연결 오류: " + e.message);
+    goOptions();
+  }
+}
+
+// 렌더
+function renderTree() {
+  const wrap = document.getElementById("tree-wrap");
+  wrap.innerHTML = "";
+  if (!rootNode) return;
+  wrap.appendChild(renderNode(rootNode, 0));
+}
+
+function renderNode(node, depth) {
+  const container = document.createElement("div");
+  const card = document.createElement("div");
+  card.className = "node-card" + (node.isRoot ? " root-card" : "");
+  card.dataset.id = node.id;
+
+  if (node.isRoot) {
+    card.style.background = "linear-gradient(135deg,#3D2B1F,#5C3D2E)";
+    card.style.borderColor = "#C8A97E";
+  } else {
+    card.style.background = `linear-gradient(135deg,${node.color}22,${node.color}44)`;
+    card.style.borderColor = selectedId === node.id ? node.color : node.color+"88";
+    if (selectedId === node.id) {
+      card.style.transform = "scale(1.02)";
+      card.style.boxShadow = `0 4px 20px ${node.color}55`;
+    }
+  }
+
+  const row = document.createElement("div");
+  row.className = "node-row";
+
+  if (!node.isRoot) {
+    const dot = document.createElement("div");
+    dot.className = "node-dot";
+    dot.style.background = node.color;
+    row.appendChild(dot);
+  }
+
+  const textWrap = document.createElement("div");
+  textWrap.style.flex = "1";
+  const titleEl = document.createElement("div");
+  titleEl.className = "node-title" + (node.isRoot ? " root" : "");
+  titleEl.style.color = node.isRoot ? "#F5E6D3" : "#3D2B1F";
+  titleEl.textContent = (node.isRoot ? "🌿 " : "") + node.title;
+  textWrap.appendChild(titleEl);
+  if (node.desc && !node.isRoot) {
+    const descEl = document.createElement("div");
+    descEl.className = "node-desc";
+    descEl.textContent = node.desc;
+    textWrap.appendChild(descEl);
+  }
+  row.appendChild(textWrap);
+
+  if (node.loading) {
+    const sp = document.createElement("div");
+    sp.className = "node-spinner"; sp.textContent = "⏳";
+    row.appendChild(sp);
+  } else if (!node.isRoot) {
+    const badge = document.createElement("div");
+    badge.className = "node-badge";
+    badge.style.background = node.color+"22";
+    badge.style.color = node.color;
+    badge.textContent = node.children.length > 0 ? node.children.length+"개" : "＋";
+    row.appendChild(badge);
+  }
+  card.appendChild(row);
+
+  if (selectedId === node.id) {
+    const btns = document.createElement("div");
+    btns.className = "action-btns";
+    if (!node.isRoot) {
+      btns.appendChild(makeActionBtn(
+        node.loading ? "⏳ 생성중..." : node.children.length > 0 ? "🔄 재확장" : "🤖 AI 확장",
+        node.color, node.loading,
+        async (e) => { e.stopPropagation(); await expandNode(node.id); }
+      ));
+    }
+    btns.appendChild(makeActionBtn("➕ 직접 추가", "#8FB5A0", false, (e) => {
+      e.stopPropagation(); addChild(node.id);
+    }));
+    if (!node.isRoot) {
+      btns.appendChild(makeActionBtn("🗑️ 삭제", "#D4847A", false, (e) => {
+        e.stopPropagation(); deleteNode(node.id);
+      }));
+    }
+    card.appendChild(btns);
+  }
+
+  card.addEventListener("click", () => {
+    selectedId = selectedId === node.id ? null : node.id;
+    renderTree();
+  });
+  container.appendChild(card);
+
+  if (node.children.length > 0) {
+    const childWrap = document.createElement("div");
+    childWrap.className = "node-children";
+    childWrap.style.marginLeft = "16px";
+    childWrap.style.borderColor = node.isRoot ? "#C8A97E55" : node.color+"55";
+    node.children.forEach(child => childWrap.appendChild(renderNode(child, depth+1)));
+    container.appendChild(childWrap);
+  }
+  return container;
+}
+
+function makeActionBtn(label, color, disabled, onClick) {
+  const b = document.createElement("button");
+  b.className = "action-btn"; b.textContent = label; b.disabled = disabled;
+  b.style.background = color+"22"; b.style.borderColor = color+"66";
+  b.style.color = disabled ? "#B0A090" : "#3D2B1F";
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function findNode(node, id) {
+  if (!node) return null;
+  if (node.id === id) return node;
+  for (const c of node.children) { const f = findNode(c,id); if(f) return f; }
+  return null;
+}
+function updateNode(node, id, fn) {
+  if (node.id === id) return fn(node);
+  return { ...node, children: node.children.map(c => updateNode(c,id,fn)) };
+}
+function removeNode(node, id) {
+  return { ...node, children: node.children.filter(c=>c.id!==id).map(c=>removeNode(c,id)) };
+}
+
+async function expandNode(nodeId) {
+  const target = findNode(rootNode, nodeId);
+  if (!target) return;
+  rootNode = updateNode(rootNode, nodeId, n=>({...n, loading:true}));
+  renderTree();
+  try {
+    const branches = await callAI(target.title, 1);
+    const newChildren = branches.map((b,i)=>({
+      id:mkId(), title:b.title, desc:b.desc,
+      color:BRANCH_COLORS[i%BRANCH_COLORS.length],
+      isRoot:false, children:[], loading:false
+    }));
+    rootNode = updateNode(rootNode, nodeId, n=>({...n, loading:false, children:newChildren}));
+    renderTree();
+    showToast("✅ 확장 완료!");
+  } catch {
+    rootNode = updateNode(rootNode, nodeId, n=>({...n, loading:false}));
+    renderTree();
+    showToast("오류가 발생했어요.");
+  }
+}
+
+function addChild(nodeId) {
+  const title = prompt("새 가지 이름을 입력하세요:");
+  if (!title?.trim()) return;
+  rootNode = updateNode(rootNode, nodeId, n=>({
+    ...n,
+    children:[...n.children, {
+      id:mkId(), title:title.trim(), desc:"직접 추가",
+      color:BRANCH_COLORS[n.children.length%BRANCH_COLORS.length],
+      isRoot:false, children:[], loading:false
+    }]
+  }));
+  renderTree();
+  showToast("가지를 추가했어요!");
+}
+
+function deleteNode(nodeId) {
+  rootNode = removeNode(rootNode, nodeId);
+  selectedId = null;
+  renderTree();
+  showToast("삭제했어요.");
+}
+
+function toggleView() {
+  isTreeView = !isTreeView;
+  const btn = document.getElementById("view-toggle-btn");
+  const treeWrap = document.getElementById("tree-wrap");
+  const textWrap = document.getElementById("tree-text-wrap");
+  if (isTreeView) {
+    btn.textContent = "🌿 맵"; btn.classList.add("active");
+    treeWrap.style.display = "none"; textWrap.style.display = "block";
+    document.getElementById("tree-text-pre").textContent = toTreeText(rootNode);
+  } else {
+    btn.textContent = "📄 텍스트"; btn.classList.remove("active");
+    treeWrap.style.display = "block"; textWrap.style.display = "none";
+  }
+}
+
+function toTreeText(node, prefix="", isLast=true) {
+  const conn = node.isRoot ? "" : (isLast ? "└─ " : "├─ ");
+  let text = prefix + conn + node.title + "\n";
+  const cp = node.isRoot ? "" : prefix + (isLast ? "   " : "│  ");
+  node.children.forEach((c,i) => { text += toTreeText(c, cp, i===node.children.length-1); });
+  return text;
+}
+
+function copyTree() {
+  if (!rootNode) return;
+  const text = toTreeText(rootNode);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(()=>showToast("📋 복사 완료!"));
+  } else {
+    const ta = document.createElement("textarea");
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand("copy");
+    document.body.removeChild(ta);
+    showToast("📋 복사 완료!");
+  }
+}
+
+function saveJSON() {
+  if (!rootNode) return;
+  const data = JSON.stringify({topic,purpose,mode,tree:rootNode},null,2);
+  const blob = new Blob([data],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `mindmap_${topic.replace(/\s/g,"_")}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast("💾 저장 완료!");
+}
+
+function loadJSON() {
+  const input = document.createElement("input");
+  input.type="file"; input.accept=".json";
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        topic = data.topic||""; purpose = data.purpose||"idea"; mode = data.mode||"wide";
+        rootNode = data.tree||null;
+        document.getElementById("topic-input").value = topic;
+        document.getElementById("map-topic-title").textContent = topic;
+        document.getElementById("map-meta").textContent =
+          (PURPOSES.find(p=>p.id===purpose)?.label||"") + " · " + (MODES.find(m=>m.id===mode)?.label||"");
+        showScreen("map");
+        document.getElementById("loading-wrap").style.display="none";
+        document.getElementById("tree-wrap").style.display="block";
+        document.getElementById("tree-text-wrap").style.display="none";
+        document.getElementById("map-toolbar").style.display="flex";
+        renderTree();
+        showToast("✅ 불러오기 완료!");
+      } catch { showToast("파일 형식이 올바르지 않아요."); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2200);
+}
+</script>
+</body>
+</html>
